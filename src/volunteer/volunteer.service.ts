@@ -44,7 +44,9 @@ export class VolunteerService {
             session: vsession,
           });
           const savedVol = await this.volRepo.save(vol);
-          return { statusCode: 201 };
+          if (savedVol) {
+            return { statusCode: 201 };
+          }
         } else {
           return {
             message: 'Maximum limit reached!',
