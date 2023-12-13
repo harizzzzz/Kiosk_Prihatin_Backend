@@ -17,7 +17,7 @@ export class VolunteerController {
   constructor(private volunteerService: VolunteerService) {}
 
   @Post('add')
-  async saveVol(@Body() volDto: CreateVolunteerDto, @Request() req: any) {
-    return await this.volunteerService.saveVolunteer(volDto, req.user);
+  async saveVol(@Body() volDto: CreateVolunteerDto) {
+    return await this.volunteerService.saveVolunteer(volDto);
   }
 }

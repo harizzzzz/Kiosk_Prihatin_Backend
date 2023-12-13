@@ -21,7 +21,7 @@ export class VolunteerService {
     private vsessionService: VSessionService,
   ) {}
 
-  async saveVolunteer(volDto: CreateVolunteerDto, payload: any) {
+  async saveVolunteer(volDto: CreateVolunteerDto) {
     try {
       const user = await this.usersService.findOne(volDto.student_id);
       const vsession = await this.vsessionService.findOne(volDto.session_id);
