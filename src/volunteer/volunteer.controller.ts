@@ -20,4 +20,9 @@ export class VolunteerController {
   async saveVol(@Body() volDto: CreateVolunteerDto) {
     return await this.volunteerService.saveVolunteer(volDto);
   }
+
+  @Get('getAll/:id')
+  async getAllVolunteer(@Param('id') id: number) {
+    return await this.volunteerService.getAll(id);
+  }
 }
