@@ -51,7 +51,7 @@ export class Users extends Base {
   @OneToMany(() => Auth, (auth) => auth.users)
   auth: Auth[];
 
-  @OneToMany(() => Reserve, (reserve) => reserve.student_id)
+  @OneToMany(() => Reserve, (reserve) => reserve.student)
   reserve: Reserve[];
 
   @OneToMany(() => Volunteer, (volunteer) => volunteer.student)

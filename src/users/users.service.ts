@@ -82,6 +82,24 @@ export class UsersService {
       throw new BadRequestException('Student does not exist !');
     }
   }
+
+  async getCount() {
+    try {
+      const query = this.userRepo
+        .createQueryBuilder('users')
+        .select('users.student_id')
+        .where('users.role=1');
+      try {
+        const res = await query.getCount();
+        return res;
+      } catch (e) {
+        console.log(e);
+        throw new BadRequestException();
+      }
+    } catch (e) {
+      throw new BadRequestException();
+    }
+  }
   //worker function
   async hashPassword(password: any) {
     const salt = await bcrypt.genSalt();
@@ -96,6 +114,44 @@ export class UsersService {
       }
       const user = await this.userRepo.findOne({
         where: { student_id: username },
+      });
+      if (user) {
+        return user;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.log(error);
+      throw new BadRequestException();
+    }
+  }
+
+  async findOneUser(username: string) {
+    try {
+      if (!username) {
+        return null;
+      }
+      const user = await this.userRepo.findOne({
+        where: { student_id: username, role: 1 },
+      });
+      if (user) {
+        return user;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.log(error);
+      throw new BadRequestException();
+    }
+  }
+
+  async findOneAdmin(username: string) {
+    try {
+      if (!username) {
+        return null;
+      }
+      const user = await this.userRepo.findOne({
+        where: { student_id: username, role: 2 },
       });
       if (user) {
         return user;

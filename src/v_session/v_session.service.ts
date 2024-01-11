@@ -112,7 +112,11 @@ export class VSessionService {
       const session_id = id;
       const query = this.vsessionrepo
         .createQueryBuilder('vSession')
-        .select(['VSession_name', 'VSession_desc', 'VSession_date'])
+        .select([
+          'VSession_name',
+          'VSession_desc',
+          "DATE_FORMAT(VSession_date, '%d %b %Y') as VSession_date",
+        ])
         .where('id=:id', { id: session_id });
       try {
         const res = await query.getRawOne();

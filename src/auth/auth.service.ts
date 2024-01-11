@@ -20,32 +20,69 @@ export class AuthService {
   ) {}
 
   async signIn(username: string, password: string) {
-    const user: any = await this.userService.findOne(username);
-    const correct = await bcrypt.compare(password, user?.password_hash);
-    if (!correct) {
-      throw new UnauthorizedException('Wrong username or password');
+    const user: any = await this.userService.findOneUser(username);
+    if (user != null) {
+      const correct = await bcrypt.compare(password, user?.password_hash);
+      if (!correct) {
+        throw new UnauthorizedException('Wrong username or password');
+      }
+      const payload = {
+        sub: user.id,
+        username: user.student_id,
+        fullname: user.full_name,
+        role: user.role,
+      };
+      const { accessToken, refreshToken } = await this.signJWT(payload);
+      try {
+        const userRT = this.authRepo.create({
+          refresh_token: refreshToken,
+          users: user,
+        });
+        await this.authRepo.save(userRT);
+      } catch (error) {
+        console.log(error);
+      }
+      return {
+        accessToken,
+        refreshToken,
+        statusCode: 200,
+      };
+    } else {
+      throw new UnauthorizedException('Please check your credential !');
     }
-    const payload = {
-      sub: user.id,
-      username: user.student_id,
-      fullname: user.full_name,
-      role: user.role,
-    };
-    const { accessToken, refreshToken } = await this.signJWT(payload);
-    try {
-      const userRT = this.authRepo.create({
-        refresh_token: refreshToken,
-        users: user,
-      });
-      await this.authRepo.save(userRT);
-    } catch (error) {
-      console.log(error);
+  }
+
+  async signInAdmin(username: string, password: string) {
+    const user: any = await this.userService.findOneAdmin(username);
+    if (user != null) {
+      const correct = await bcrypt.compare(password, user?.password_hash);
+      if (!correct) {
+        throw new UnauthorizedException('Wrong username or password');
+      }
+      const payload = {
+        sub: user.id,
+        username: user.student_id,
+        fullname: user.full_name,
+        role: user.role,
+      };
+      const { accessToken, refreshToken } = await this.signJWT(payload);
+      try {
+        const userRT = this.authRepo.create({
+          refresh_token: refreshToken,
+          users: user,
+        });
+        await this.authRepo.save(userRT);
+      } catch (error) {
+        console.log(error);
+      }
+      return {
+        accessToken,
+        refreshToken,
+        statusCode: 200,
+      };
+    } else {
+      throw new UnauthorizedException('Users not an Admin');
     }
-    return {
-      accessToken,
-      refreshToken,
-      statusCode: 200,
-    };
   }
   //3.14a.m(3/12/2023)
   async logout(payload: any) {

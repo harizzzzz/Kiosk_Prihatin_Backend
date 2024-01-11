@@ -34,4 +34,9 @@ export class UsersController {
   async findUser(@Param('username') username: string) {
     return this.usersService.findUser(username);
   }
+
+  @Get('getStudentCount')
+  async getStudentCount() {
+    return this.usersService.getCount();
+  }
 }

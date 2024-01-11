@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { CreateVolunteerDto } from './dto/create-volunteer.dto';
 import { UpdateVolunteerDto } from './dto/update-volunteer.dto';
@@ -15,6 +16,7 @@ import { VSessionService } from 'src/v_session/v_session.service';
 import e from 'express';
 import { error } from 'console';
 import { VSession } from 'src/v_session/entities/v_session.entity';
+import { RemoveVolunteerDto } from './dto/remove-volunteer.dto';
 
 @Injectable()
 export class VolunteerService {
@@ -24,6 +26,7 @@ export class VolunteerService {
     private vsessionService: VSessionService,
 
     @InjectRepository(VSession) private vSessionRepo: Repository<VSession>,
+    @InjectRepository(Users) private userRepo: Repository<Users>,
   ) {}
 
   async saveVolunteer(volDto: CreateVolunteerDto) {
@@ -85,7 +88,7 @@ export class VolunteerService {
         ])
         .leftJoin('VSession.volunteers', 'volunteer')
         .groupBy('VSession.id')
-        .where('VSession.VSession_date <= :dateToday', {
+        .where('VSession.VSession_date >= :dateToday', {
           dateToday: new Date(),
         });
 
@@ -108,6 +111,108 @@ export class VolunteerService {
     }
   }
 
+  async getAllRegistered(id: number) {
+    try {
+      const student_id = id;
+      console.log(student_id);
+      const query = this.vSessionRepo
+        .createQueryBuilder('VSession')
+        .select([
+          'VSession.id',
+          'VSession.VSession_name',
+          'VSession.VSession_desc',
+          'VSession.VSession_date as VSession_date',
+          'VSession.VSession_limit',
+          'VSession.VSession_hour',
+          'COUNT(volunteer.session_id) AS volunteer_count',
+        ])
+        .leftJoin('VSession.volunteers', 'volunteer')
+        .groupBy('VSession.id')
+        .where('VSession.VSession_date >= :dateToday', {
+          dateToday: new Date(),
+        })
+        .andWhere('volunteer.student_id=:student_id', {
+          student_id: student_id,
+        });
+
+      const count = await query.getCount();
+      const Vsessions = await query.getRawMany();
+      if (count != 0) {
+        return Vsessions;
+      } else {
+        return { message: 'No data' };
+      }
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException();
+    }
+  }
+
+  async getAllHistory(id: number) {
+    try {
+      const student_id = id;
+      console.log(student_id);
+      const query = this.volRepo
+        .createQueryBuilder('volunteer')
+        .select([
+          'VSession.id',
+          'VSession.VSession_name',
+          'VSession.VSession_desc',
+          "DATE_FORMAT(VSession_date, '%d %b %Y') as VSession_date",
+          'VSession.VSession_limit',
+          'VSession.VSession_hour',
+        ])
+        .leftJoin('volunteer.session', 'VSession')
+        .leftJoin('volunteer.student', 'Users')
+        .groupBy('volunteer.session_id')
+        .where('VSession.VSession_date < :dateToday', {
+          dateToday: new Date(),
+        })
+        .andWhere('volunteer.student_id=:student_id', {
+          student_id: student_id,
+        });
+
+      const count = await query.getCount();
+      const Vsessions = await query.getRawMany();
+
+      const vsessionWithParticipants = await Promise.all(
+        Vsessions.map(async (vSession) => {
+          const part = await this.findParticipants(
+            Number(vSession.VSession_id),
+          );
+          return { vSession, participants: part };
+        }),
+      );
+
+      return vsessionWithParticipants;
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException();
+    }
+  }
+
+  async removeRegistration(volDto: RemoveVolunteerDto) {
+    try {
+      const query = this.volRepo
+        .createQueryBuilder()
+        .delete()
+        .from('volunteer')
+        .where('student_id=:student_id', { student_id: volDto.student_id })
+        .andWhere('session_id=:session_id', { session_id: volDto.session_id });
+
+      try {
+        const res = await query.execute();
+        return res;
+      } catch (error) {
+        console.log(error);
+        throw new BadRequestException();
+      }
+    } catch (error) {
+      console.log(error);
+      throw new BadRequestException();
+    }
+  }
+
   //kuli(zul) function
   async findSessionMatch(student_id: number, id: number) {
     const query = this.volRepo
@@ -116,6 +221,11 @@ export class VolunteerService {
       .where('student_id IN (:student_id)', { student_id: student_id })
       .andWhere('session_id IN (:session_id)', { session_id: id });
     try {
+      const [sql, parameters] = query.getQueryAndParameters();
+
+      // Log the SQL query and parameters
+      Logger.log(`SQL Query: ${sql}`);
+      Logger.log(`Parameters: ${JSON.stringify(parameters)}`);
       const res = await query.getExists();
       return res;
     } catch (e) {
@@ -124,6 +234,26 @@ export class VolunteerService {
     }
   }
 
+  async findParticipants(id: number) {
+    const query = this.userRepo
+      .createQueryBuilder('users')
+      .select(['GROUP_CONCAT(users.full_name) as names'])
+      .leftJoin('users.volunteers', 'volunteer')
+      .where('volunteer.session_id=:session_id', { session_id: id });
+
+    try {
+      const [sql, parameters] = query.getQueryAndParameters();
+
+      // Log the SQL query and parameters
+      Logger.log(`SQL Query: ${sql}`);
+      Logger.log(`Parameters: ${JSON.stringify(parameters)}`);
+
+      const res = await query.getRawOne();
+      return res;
+    } catch (e) {
+      console.log(e);
+    }
+  }
   async findAllSessionbyId(id: number) {
     const queryBuilder = this.volRepo
       .createQueryBuilder('volunteer')
