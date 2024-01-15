@@ -13,6 +13,7 @@ import { addVSessionDto } from './dto/add-vsession';
 import { VolunteerService } from 'src/volunteer/volunteer.service';
 import { Volunteer } from 'src/volunteer/entities/volunteer.entity';
 import { merge } from 'rxjs';
+import { editVSessionDto } from './dto/edit-vsession.dto';
 
 @Injectable()
 export class VSessionService {
@@ -131,6 +132,62 @@ export class VSessionService {
     }
   }
 
+  async getSession(id: number) {
+    try {
+      const query = this.vsessionrepo
+        .createQueryBuilder('VSession')
+        .select([
+          'VSession.id as id',
+          'VSession.VSession_name as name',
+          'VSession.VSession_desc as description',
+          'VSession.VSession_limit as u_limit',
+          " DATE_FORMAT(VSession_date, '%d/%m/%Y') as date",
+          'VSession.VSession_hour as duration',
+        ])
+        .where('id=:id', { id: id });
+
+      try {
+        const res = await query.getRawOne();
+        if (res) {
+          return res;
+        } else {
+          console.log('rosak');
+          throw new BadRequestException();
+        }
+      } catch (e) {
+        console.log(e);
+        throw new BadRequestException();
+      }
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException();
+    }
+  }
+
+  async editSession(id: number, editDto: editVSessionDto) {
+    try {
+      const session_id = id;
+      const session = await this.findOne(session_id);
+      if (session != null) {
+        for (const key of Object.keys(editDto)) {
+          session[key] = editDto[key];
+        }
+      } else {
+        throw new BadRequestException();
+      }
+      const updatedSession = await this.vsessionrepo.save(session);
+
+      if (updatedSession) {
+        return { statusCode: 200 };
+      } else {
+        return { statusCode: 400 };
+      }
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException();
+    }
+  }
+
   //workers function
 
   async findRegistered(id: number) {
@@ -138,13 +195,13 @@ export class VSessionService {
     } catch (err) {}
   }
 
-  async findOne(username: string) {
+  async findOne(id: number) {
     try {
-      if (!username) {
+      if (!id) {
         return null;
       }
       const session = await this.vsessionrepo.findOne({
-        where: { id: Number(username) },
+        where: { id: id },
       });
       if (session) {
         return session;

@@ -33,7 +33,9 @@ export class VolunteerService {
     try {
       const user = await this.usersService.findOne(volDto.student_id);
       if (user != null) {
-        const vsession = await this.vsessionService.findOne(volDto.session_id);
+        const vsession = await this.vsessionService.findOne(
+          Number(volDto.session_id),
+        );
         const existing = await this.findSessionMatch(
           Number(volDto.student_id),
           Number(volDto.session_id),
@@ -148,6 +150,73 @@ export class VolunteerService {
     }
   }
 
+  async getAllforAdmin() {
+    try {
+      const query = this.vSessionRepo
+        .createQueryBuilder('VSession')
+        .select([
+          'VSession.id as id',
+          'VSession.VSession_name as name',
+          'VSession.VSession_desc as description',
+          "DATE_FORMAT(VSession.VSession_date, '%d %b %Y') as date",
+          'VSession.VSession_limit as u_limit',
+          'VSession.VSession_hour as duration',
+        ])
+        .where('VSession.VSession_date < :dateToday', {
+          dateToday: new Date(),
+        })
+        .orderBy('date', 'ASC');
+
+      const count = await query.getCount();
+      const Vsessions = await query.getRawMany();
+
+      const vsessionWithParticipants = await Promise.all(
+        Vsessions.map(async (vSession) => {
+          const part = await this.findParticipants(Number(vSession.id));
+          return { vSession, participants: part };
+        }),
+      );
+
+      return vsessionWithParticipants;
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException();
+    }
+  }
+
+  async getAllUpcomingforAdmin() {
+    try {
+      const query = this.vSessionRepo
+        .createQueryBuilder('VSession')
+        .select([
+          'VSession.id as id',
+          'VSession.VSession_name as name',
+          'VSession.VSession_desc as description',
+          "DATE_FORMAT(VSession.VSession_date, '%d %b %Y') as date",
+          'VSession.VSession_limit as u_limit',
+          'VSession.VSession_hour as duration',
+        ])
+        .where('VSession.VSession_date >= :dateToday', {
+          dateToday: new Date(),
+        })
+        .orderBy('date', 'DESC');
+
+      const count = await query.getCount();
+      const Vsessions = await query.getRawMany();
+
+      const vsessionWithParticipants = await Promise.all(
+        Vsessions.map(async (vSession) => {
+          const part = await this.findParticipants(Number(vSession.id));
+          return { vSession, participants: part };
+        }),
+      );
+
+      return vsessionWithParticipants;
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException();
+    }
+  }
   async getAllHistory(id: number) {
     try {
       const student_id = id;
@@ -185,6 +254,34 @@ export class VolunteerService {
       );
 
       return vsessionWithParticipants;
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException();
+    }
+  }
+
+  async deleteSession(session_id: number) {
+    try {
+      const query = this.volRepo
+        .createQueryBuilder('volunteer')
+        .delete()
+        .where('volunteer.session_id=:session_id', { session_id: session_id });
+
+      const res = await query.execute();
+      if (res) {
+        const nextQuery = this.vSessionRepo
+          .createQueryBuilder('VSession')
+          .softDelete()
+          .where('id=:session_id', { session_id: session_id });
+
+        const resNext = await nextQuery.execute();
+
+        if (resNext) {
+          return { statusCode: 201 };
+        } else {
+          throw new BadRequestException();
+        }
+      }
     } catch (e) {
       console.log(e);
       throw new BadRequestException();

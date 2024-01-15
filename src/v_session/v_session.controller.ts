@@ -12,6 +12,7 @@ import { CreateVSessionDto } from './dto/create-v_session.dto';
 import { UpdateVSessionDto } from './dto/update-v_session.dto';
 import { addVSessionDto } from './dto/add-vsession';
 import { retry } from 'rxjs';
+import { editVSessionDto } from './dto/edit-vsession.dto';
 
 @Controller('v-session')
 export class VSessionController {
@@ -32,8 +33,21 @@ export class VSessionController {
     return this.vsessionService.getAll();
   }
 
+  @Get('getSession/:session_id')
+  async getSession(@Param('session_id') session_id: number) {
+    return this.vsessionService.getSession(session_id);
+  }
+
   @Get('getAllNoException')
   async getAll() {
     return this.vsessionService.getAllNoException();
+  }
+
+  @Post('editSession/:session_id')
+  async editSession(
+    @Param('session_id') session_id: number,
+    @Body() editDto: editVSessionDto,
+  ) {
+    return await this.vsessionService.editSession(session_id, editDto);
   }
 }

@@ -14,6 +14,8 @@ import { ModifyUserDto } from './dto/modify-user.dto';
 import { SignupDTO } from './dto';
 import { Users } from './entities/user.entity';
 import { AccessTokenGuard } from 'src/auth/guard/access-token.guard';
+import { DeleteManyModel } from 'typeorm';
+import { DeleteUserDto } from './dto/delete-user.dto';
 
 @Controller('users')
 export class UsersController {
@@ -22,6 +24,11 @@ export class UsersController {
   @Post('signup')
   async signup(@Body() signupDTO: SignupDTO) {
     return this.usersService.signUp(signupDTO);
+  }
+
+  @Post('delete')
+  async delete(@Body() deleteuserDto: DeleteUserDto) {
+    return this.usersService.deleteUser(deleteuserDto);
   }
 
   @UseGuards(AccessTokenGuard)
@@ -38,5 +45,10 @@ export class UsersController {
   @Get('getStudentCount')
   async getStudentCount() {
     return this.usersService.getCount();
+  }
+
+  @Get('getAllStudent')
+  async getAllStudent() {
+    return this.usersService.getAllStudent();
   }
 }

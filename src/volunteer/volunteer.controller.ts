@@ -35,6 +35,20 @@ export class VolunteerController {
     return await this.volunteerService.getAllHistory(id);
   }
 
+  @Get('getAllforAdmin')
+  async getAll() {
+    return await this.volunteerService.getAllforAdmin();
+  }
+
+  @Get('getUpcomingforAdmin')
+  async getAllUpcoming() {
+    return await this.volunteerService.getAllUpcomingforAdmin();
+  }
+  @Get('delete/:session_id')
+  async delete(@Param('session_id') session_id: number) {
+    return await this.volunteerService.deleteSession(session_id);
+  }
+
   @Post('cancelRegistration')
   async cancelReg(@Body() volDto: RemoveVolunteerDto) {
     return await this.volunteerService.removeRegistration(volDto);

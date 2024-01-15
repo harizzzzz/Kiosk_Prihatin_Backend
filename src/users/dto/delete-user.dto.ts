@@ -8,24 +8,12 @@ import {
 } from 'class-validator';
 import * as sanitizeHtml from 'sanitize-html';
 
-export class ModifyUserDto {
+export class DeleteUserDto {
   @Escape()
   @Transform((params: TransformFnParams) => sanitizeHtml(params.value))
-  full_name: string;
+  admin_id: string;
 
   @Escape()
   @Transform((params: TransformFnParams) => sanitizeHtml(params.value))
-  password_hash: string;
-
-  @Escape()
-  @Transform((params: TransformFnParams) => sanitizeHtml(params.value))
-  password_old: string;
-
-  @Escape()
-  @Transform((params: TransformFnParams) => sanitizeHtml(params.value))
-  student_id: string;
-
-  @Escape()
-  @Transform((params: TransformFnParams) => sanitizeHtml(params.value))
-  email: string;
+  user_id: string;
 }

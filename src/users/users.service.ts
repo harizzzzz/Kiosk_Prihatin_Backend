@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { Users } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm/dist';
 import * as bcrypt from 'bcrypt';
+import { DeleteUserDto } from './dto/delete-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -41,25 +42,100 @@ export class UsersService {
       const currentUser: any = await this.userRepo.findOne({
         where: { id: user.id },
       });
-      for (const key of Object.keys(modifyUserDto)) {
-        if (key === 'password_hash') {
-          modifyUserDto[key] = await this.hashPassword(modifyUserDto[key]);
-        }
-        currentUser[key] = modifyUserDto[key];
-      }
-      const newUser = await this.userRepo.update(currentUser.id, currentUser);
-      if (newUser) {
+
+      // Hash the old password from the DTO and compare it
+      const pass = modifyUserDto.password_old;
+      const hashedOldPassword = await this.hashPassword(pass);
+
+      const passwordMatched = await bcrypt.compare(
+        pass,
+        currentUser.password_hash,
+      );
+
+      if (!passwordMatched) {
         return {
-          statusCode: 200,
+          statusCode: 401, // Unauthorized
+          message: 'Old password does not match.',
         };
       } else {
-        return {
-          statusCode: 400,
-        };
+        // If old password matches, update the user information
+        for (const key of Object.keys(modifyUserDto)) {
+          if (key === 'password_hash') {
+            // Hash the new password if provided
+            if (modifyUserDto[key]) {
+              currentUser[key] = await this.hashPassword(modifyUserDto[key]);
+            }
+          } else if (key !== 'password_old') {
+            // Update other fields excluding password_old
+            currentUser[key] = modifyUserDto[key];
+          }
+        }
+
+        const newUser = await this.userRepo.save(currentUser);
+
+        if (newUser) {
+          return {
+            statusCode: 200,
+          };
+        } else {
+          return {
+            statusCode: 400,
+          };
+        }
       }
     } catch (err) {
-      console.log('hihi');
       console.log(err);
+      return {
+        statusCode: 500,
+        message: 'Internal Server Error',
+      };
+    }
+  }
+
+  async deleteUser(deleteuserDto: DeleteUserDto) {
+    try {
+      const admin = await this.findOneAdmin(deleteuserDto.admin_id);
+      if (!admin) {
+        throw new BadRequestException();
+      } else {
+        const user = await this.findOne(deleteuserDto.user_id);
+        if (!user) {
+          throw new BadRequestException();
+        } else {
+          const query = this.userRepo
+            .createQueryBuilder('users')
+            .softDelete()
+            .where('student_id=:student_id', {
+              student_id: deleteuserDto.user_id,
+            });
+
+          const res = await query.execute();
+
+          return res;
+        }
+      }
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException();
+    }
+  }
+
+  async getAllStudent() {
+    try {
+      const query = this.userRepo
+        .createQueryBuilder('users')
+        .select([
+          'users.id as id',
+          'users.student_id as student_id',
+          'users.full_name as name',
+        ])
+        .where('users.role=1');
+
+      const res = await query.getRawMany();
+      return res;
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException();
     }
   }
 
