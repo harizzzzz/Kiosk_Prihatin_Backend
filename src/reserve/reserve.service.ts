@@ -90,6 +90,55 @@ export class ReserveService {
     }
   }
 
+  async getReservationByItem(item_id: number) {
+    try {
+      const item = await this.itemService.findOneById(item_id);
+      if (item) {
+        const query = this.reserveRepo
+          .createQueryBuilder('reserve')
+          .select([
+            'reserve.reserve_id as id',
+            'reserve.quantity as quantity',
+            'reserve.student_id as student_id',
+            'reserve.session_id as session_id',
+            `DATE_FORMAT(reserve.reserve_time, '%d/%m/%Y, %h:%i %p') AS reserve_time`,
+          ])
+          .orderBy('5', 'DESC')
+          .where('item_id=:item_id', { item_id: item_id });
+
+        const res = await query.getRawMany();
+        return res;
+      }
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException();
+    }
+  }
+
+  async getTotalReservedByItem(item_id) {
+    try {
+      const query = this.reserveRepo
+        .createQueryBuilder('reserve')
+        .select([
+          'item.id as id',
+          'COALESCE(SUM(reserve.quantity), 0) AS total_quantity',
+        ])
+        .leftJoin('reserve.item', 'item')
+        .where('item.id=:item_id', { item_id: item_id })
+        .groupBy('item.id');
+
+      const res = query.getRawOne();
+      if (res) {
+        return res;
+      } else {
+        throw new BadRequestException();
+      }
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException();
+    }
+  }
+
   async getOneSession(session_id: string) {
     try {
       const sesh = await this.getSessionExist(session_id);

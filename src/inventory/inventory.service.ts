@@ -6,6 +6,7 @@ import { Inventory } from './entities/inventory.entity';
 import { Repository } from 'typeorm';
 import { ItemService } from 'src/item/item.service';
 import { Item } from 'src/item/entities/item.entity';
+import { CreateItemDto } from 'src/item/dto/create-item.dto';
 
 @Injectable()
 export class InventoryService {
@@ -18,6 +19,44 @@ export class InventoryService {
     private itemRepo: Repository<Item>,
   ) {}
 
+  async createInventoryandItem(createDto: CreateItemDto) {
+    try {
+      const item = this.itemRepo.create({
+        item_name: createDto.item_name,
+        item_desc: createDto.item_desc,
+        item_imgLink: createDto.item_imgLink,
+      });
+
+      const savedItem = await this.itemRepo.save(item);
+
+      if (!savedItem) {
+        throw new BadRequestException();
+      } else {
+        try {
+          const itemexist = await this.itemService.findOneItem(savedItem.id);
+          if (itemexist != null) {
+            const inventory = this.inventoryRepo.create({
+              quantity: createDto.quantity,
+              item: itemexist,
+            });
+
+            const savedItem = await this.inventoryRepo.save(inventory);
+            if (savedItem) {
+              return { statusCode: 201 };
+            }
+          } else {
+            return { statusCode: 404 };
+          }
+        } catch (error) {
+          console.log(error);
+          throw new BadRequestException();
+        }
+      }
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException();
+    }
+  }
   async create(createInventoryDto: CreateInventoryDto) {
     try {
       const itemexist = await this.itemService.findOneItem(
@@ -71,6 +110,57 @@ export class InventoryService {
       return recentInventory;
     } catch (error) {
       console.log(error);
+      throw new BadRequestException();
+    }
+  }
+
+  async retrieveItemMostRecentInventory(item_id) {
+    try {
+      const query = this.inventoryRepo
+        .createQueryBuilder('inventory')
+        .select([
+          'inventory.inv_id as id',
+          'inventory.item_id as item_id',
+          'inventory.quantity as quantity',
+          `DATE_FORMAT(inventory.createdDate, '%d/%m/%Y, %h:%i %p') AS timeCreated`,
+        ])
+        .where('item_id=:item_id', { item_id: item_id })
+        .orderBy('4', 'DESC')
+        .limit(1);
+
+      const recentInventory = await query.getRawOne();
+
+      return recentInventory;
+    } catch (error) {
+      console.log(error);
+      throw new BadRequestException();
+    }
+  }
+
+  async getInventoryByItem(item_id) {
+    try {
+      const item = await this.itemService.findOneById(item_id);
+      if (item) {
+        const query = await this.inventoryRepo
+          .createQueryBuilder('inventory')
+          .select([
+            'inventory.inv_id as id',
+            'inventory.quantity as quantity',
+            `DATE_FORMAT(inventory.createdDate, '%d/%m/%Y, %h:%i %p') AS timeCreated`,
+          ])
+          .where('item_id=:item_id', { item_id: item_id })
+          .orderBy('3', 'DESC');
+
+        const res = await query.getRawMany();
+
+        if (res) {
+          return res;
+        } else {
+          throw new BadRequestException();
+        }
+      }
+    } catch (e) {
+      console.log(e);
       throw new BadRequestException();
     }
   }

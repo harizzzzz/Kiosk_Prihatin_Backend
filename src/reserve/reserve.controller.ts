@@ -34,4 +34,14 @@ export class ReserveController {
   async getReserveHistory(@Param('student_id') student_id: string) {
     return await this.reserveService.retrieveHistory(student_id);
   }
+
+  @Get('getReserveByItem/:item_id')
+  async getReserveByItem(@Param('item_id') item_id: number) {
+    return await this.reserveService.getReservationByItem(item_id);
+  }
+
+  @Get('getTotalReservedByItem/:item_id')
+  async getTotalReservedByItem(@Param('item_id') item_id: number) {
+    return await this.reserveService.getTotalReservedByItem(item_id);
+  }
 }

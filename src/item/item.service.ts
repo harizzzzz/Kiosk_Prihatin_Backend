@@ -4,6 +4,7 @@ import { UpdateItemDto } from './dto/update-item.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Item } from './entities/item.entity';
 import { Repository } from 'typeorm';
+import { InventoryService } from 'src/inventory/inventory.service';
 
 @Injectable()
 export class ItemService {
@@ -51,6 +52,59 @@ export class ItemService {
       }
     } catch (err) {
       console.log(err);
+    }
+  }
+
+  async deleteItem(id: number) {
+    const item = this.findOneById(id);
+    if (!item) {
+      throw new BadRequestException();
+    } else {
+      const query = this.itemRepo
+        .createQueryBuilder('item')
+        .softDelete()
+        .where('id=:id', { id: id });
+
+      try {
+        const res = query.execute();
+        if (res) {
+          return { statusCode: 200 };
+        } else {
+          return { statusCode: 400 };
+        }
+      } catch (e) {
+        console.log(e);
+        throw new BadRequestException();
+      }
+    }
+  }
+
+  async getItem(id: number) {
+    try {
+      const query = this.itemRepo
+        .createQueryBuilder('item')
+        .select([
+          'item.id as id',
+          'item.item_name as name',
+          'item.item_desc as description',
+          'item.item_imgLink as link',
+        ])
+        .where('id=:id', { id: id });
+
+      try {
+        const res = await query.getRawOne();
+        if (res) {
+          return res;
+        } else {
+          return null;
+        }
+      } catch (e) {
+        console.log(e);
+        throw new BadRequestException();
+      }
+    } catch (e) {
+      console.log(e);
+      throw new BadRequestException();
     }
   }
 

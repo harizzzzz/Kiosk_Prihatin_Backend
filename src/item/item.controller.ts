@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete ,Request} from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Request,
+} from '@nestjs/common';
 import { ItemService } from './item.service';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
@@ -8,17 +17,22 @@ export class ItemController {
   constructor(private itemService: ItemService) {}
 
   @Post('create')
-  async createItem(@Body()CreateItemDto:CreateItemDto){
-    return this.itemService.createItem(CreateItemDto)}
-  
+  async createItem(@Body() CreateItemDto: CreateItemDto) {
+    return this.itemService.createItem(CreateItemDto);
+  }
 
- @Post("edit/:id")
-  async edit(
-    @Body() updateItemDto: UpdateItemDto,
-    @Param("id") id: number,
-    
-  ) {
+  @Post('edit/:id')
+  async edit(@Body() updateItemDto: UpdateItemDto, @Param('id') id: number) {
     return this.itemService.modifyItem(updateItemDto, id);
   }
+
+  @Get('delete/:id')
+  async delete(@Param('id') id: number) {
+    return this.itemService.deleteItem(id);
   }
 
+  @Get('getItem/:id')
+  async getItem(@Param('id') id: number) {
+    return this.itemService.getItem(id);
+  }
+}

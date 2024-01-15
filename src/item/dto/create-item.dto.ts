@@ -27,4 +27,9 @@ export class CreateItemDto {
   @Escape()
   @Transform((params: TransformFnParams) => sanitizeHtml(params.value))
   item_imgLink: string;
+
+  @Escape()
+  @IsNotEmpty()
+  @Transform((params: TransformFnParams) => sanitizeHtml(params.value))
+  quantity: number;
 }
