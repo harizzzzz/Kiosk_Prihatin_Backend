@@ -61,11 +61,12 @@ export class ReserveService {
 
   async retrieveHistory(student_id: string) {
     try {
+      const sId = student_id;
       const distinctReserveQuery = await this.reserveRepo
         .createQueryBuilder('reserve')
-        .select('reserve.*')
-        .where('reserve.student_id IN (:student_id)', {
-          student_id: student_id,
+        .select('distinct(reserve.session_id)')
+        .where('reserve.student_id =:student_id', {
+          student_id: sId,
         });
 
       const distinctReserveCount = await distinctReserveQuery.getCount();
